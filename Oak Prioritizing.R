@@ -4,20 +4,38 @@ library(plyr)
 library(dplyr)
 
 
-path.q <- "G:/My Drive/Oaks_ClimateSensitivity/"
+path.base <- "G:/My Drive/Oaks_ClimateSensitivity/"
+path.t <- paste(path.base, "Traits/", sep="")
 
-setwd(path.q)
+setwd(path.base)
 
 #grabbing the file from google drive and making it a workable data frame
 quer.df <- sheets_find("Quercus Collection Metadata")
 quer.dat <- data.frame(sheets_read(quer.df, range='QuercusCollection'))
-
-colnames(quer.dat)
-
 colnames(quer.dat) <- c("Species", "Common Name", "Subgenus", "Section", "Numtrees", "Wild Origin", "Garden Origin",
-                        "Geographic Distribution", "Phenology", "Dendrometer Bands", "ITRDB", "TRY Traits", 
-                        "BIEN Traits", "Notes")
+                        "Geographic Distribution", "Phenology", "Dendrometer Bands", "ITRDB", "TRY_Traits", 
+                        "BIEN_Traits", "Notes")
 #removing oaks we are not doing phenology monitoring for#
 quer.org <- quer.dat[!(quer.dat$Phenology =="N"),]
+
+#removing oaks that don't have both TRY and BIEN traits. Temporary solution will likely need tweaking
+quer.org <- na.omit(quer.org)
+
+specieslist <- quer.org$Species
+#grabbing the TRY trait file for comparison
+setwd(path.t)
+try.df <- sheets_find("TRY_Quercus_Traits")
+try.dat <- data.frame(sheets_read(try.df))
+colnames(try.dat)
+
+#removing oak species we aren't concerned with from TRY
+try.mod <- try.dat[try.dat$species %in% specieslist, ]
+
+#Grabbing the BIEN trait file for comparison
+bien.dat <- read.csv("BIEN_fulllist.csv")
+colnames(bien.dat)
+
+#removing oak species we aren't concerned with from BIEN
+bien.mod <- bien.dat[bien.dat$species %in% specieslist, ]
 
 
