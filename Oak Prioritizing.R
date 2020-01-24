@@ -18,16 +18,6 @@ colnames(quer.dat) <- c("Species", "Common Name", "Subgenus", "Section", "Numtre
                         "Geographic Distribution", "Phenology", "Dendrometer Bands", "ITRDB", "TRY_Traits", 
                         "BIEN_Traits", "Notes")
 
-#grabbing the TRY trait file
-setwd(path.t)
-try.df <- sheets_find("TRY_Quercus_Traits")
-try.dat <- data.frame(sheets_read(try.df))
-colnames(try.dat)
-
-#removing oak species we aren't concerned with from TRY
-try.mod <- try.dat[try.dat$species %in% specieslist, ]
-
-
 #Grabbing the BIEN trait file for comparison
 setwd(path.t)
 bien.dat <- read.csv("BIEN_fulllist.csv")
@@ -43,10 +33,10 @@ quer.org <- na.omit(quer.org)
 quercus.mod <- subset(bien.dat, select= c("species", "trait_name"))
 quercus.s <- quercus.mod %>% distinct()
 quercus.sp <- data.frame(ddply(quercus.s,~species,summarise,number=length(unique(trait_name))))
-quercus.sp <- quercus.sp[!(quercus.sp$number < 15),]
+quercus.sp <- quercus.sp[!(quercus.sp$number < 1),]
 
 quercus.t <- data.frame(ddply(quercus.s,~trait_name,summarise,number=length(unique(species))))
-quercus.t <- quercus.t[!(quercus.t$number < 20),]
+quercus.t <- quercus.t[!(quercus.t$number < 1),]
 
 specieslist <- quercus.sp$species
 traitlist <- quercus.t$trait_name
@@ -54,6 +44,18 @@ traitlist <- quercus.t$trait_name
 #removing oak species we aren't concerned with from BIEN
 bien.mod <- bien.dat[(bien.dat$species %in% specieslist & bien.dat$trait_name %in% traitlist), ]
 bien.mod <- subset(bien.mod, select=c(1:4))
+
+#Creating a data.frame of the qualitative traits that aren't run in ordination
+bien.mod$trait_value <- as.character(bien.mod$trait_value)
+bien.qual <- bien.mod
+bien.qual$trait_value <- gsub('[0-9]+', '', bien.qual$trait_value)
+bien.qual$trait_value <- gsub('[[:punct:]]+', '', bien.qual$trait_value)
+bien.qual <- bien.qual[!((bien.qual$trait_value=="")|(bien.qual$trait_value=="e")),]
+bien.qualagg <- bien.qual %>% 
+                  group_by(species, trait_name) %>% 
+                  summarise(trait_value = paste(unique(trait_value), collapse = ', '))
+
+bien.qualchart <- spread(bien.qualagg, trait_name, trait_value)
 
 #Converting to character then number YOU MUST CONVERT TO CHARCTER FIRST OR VALUES CHANGE
 bien.mod$trait_value <- as.numeric(as.character(bien.mod$trait_value))
@@ -82,12 +84,15 @@ library(ggplot2)
 ggplot(bien.xy, aes(MDS1, MDS2, color = bien.xy$species)) + geom_point() + theme_bw()
 
 
-#test case
-bien.ordt <- spread(bien.agg, trait_name, trait_value)
-bien.ordsm <- bien.ordt[c(2,6,13,17,19,29,30,33),c(2:4,19)]
-View(bien.ordsm)
 
-bien.modt$trait_value <- as.numeric(as.character(bien.modt$trait_value))
-bien.aggt <- aggregate(trait_value~trait_name+species, data=bien.modt, mean)
-View(bien.aggt)
+
+#grabbing the TRY trait file
+setwd(path.t)
+try.df <- sheets_find("TRY_Quercus_Traits")
+try.dat <- data.frame(sheets_read(try.df))
+colnames(try.dat)
+
+#removing oak species we aren't concerned with from TRY
+try.mod <- try.dat[try.dat$species %in% specieslist, ]
+
 
