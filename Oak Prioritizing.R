@@ -11,7 +11,14 @@ path.t <- paste(path.base, "Traits/", sep="")
 
 setwd(path.base)
 
-#grabbing the TRY trait file for comparison moved for now since its not being used
+#grabbing the file from google drive and making it a workable data frame
+quer.df <- sheets_find("Quercus Collection Metadata")
+quer.dat <- data.frame(sheets_read(quer.df, range='QuercusCollection'))
+colnames(quer.dat) <- c("Species", "Common Name", "Subgenus", "Section", "Numtrees", "Wild Origin", "Garden Origin",
+                        "Geographic Distribution", "Phenology", "Dendrometer Bands", "ITRDB", "TRY_Traits", 
+                        "BIEN_Traits", "Notes")
+
+#grabbing the TRY trait file
 setwd(path.t)
 try.df <- sheets_find("TRY_Quercus_Traits")
 try.dat <- data.frame(sheets_read(try.df))
@@ -22,16 +29,10 @@ try.mod <- try.dat[try.dat$species %in% specieslist, ]
 
 
 #Grabbing the BIEN trait file for comparison
+setwd(path.t)
 bien.dat <- read.csv("BIEN_fulllist.csv")
 colnames(bien.dat)
 
-
-#grabbing the file from google drive and making it a workable data frame
-quer.df <- sheets_find("Quercus Collection Metadata")
-quer.dat <- data.frame(sheets_read(quer.df, range='QuercusCollection'))
-colnames(quer.dat) <- c("Species", "Common Name", "Subgenus", "Section", "Numtrees", "Wild Origin", "Garden Origin",
-                        "Geographic Distribution", "Phenology", "Dendrometer Bands", "ITRDB", "TRY_Traits", 
-                        "BIEN_Traits", "Notes")
 #removing oaks we are not doing phenology monitoring for#
 quer.org <- quer.dat[!(quer.dat$Phenology =="N"),]
 
@@ -65,8 +66,8 @@ bien.agg <- aggregate(trait_value~species+trait_name, data=bien.mod, median)
 bien.ord <- spread(bien.agg, trait_name, trait_value)
 
 #removing any remaining NA's leftover from trimming of species and traits
+View(bien.ord)
 bien.ord <- na.omit(bien.ord)
-View(bien.orddata)
 
 bien.orddata <- bien.ord[,-c(1)]
 
