@@ -33,10 +33,10 @@ quer.org <- na.omit(quer.org)
 quercus.mod <- subset(bien.dat, select= c("species", "trait_name"))
 quercus.s <- quercus.mod %>% distinct()
 quercus.sp <- data.frame(ddply(quercus.s,~species,summarise,number=length(unique(trait_name))))
-quercus.sp <- quercus.sp[!(quercus.sp$number < 1),]
+quercus.sp <- quercus.sp[!(quercus.sp$number < 10),]
 
 quercus.t <- data.frame(ddply(quercus.s,~trait_name,summarise,number=length(unique(species))))
-quercus.t <- quercus.t[!(quercus.t$number < 1),]
+quercus.t <- quercus.t[!(quercus.t$number < 25),]
 
 specieslist <- quercus.sp$species
 traitlist <- quercus.t$trait_name
@@ -58,7 +58,7 @@ bien.qualagg <- bien.qual %>%
 bien.qualchart <- spread(bien.qualagg, trait_name, trait_value)
 
 #Converting to character then number YOU MUST CONVERT TO CHARCTER FIRST OR VALUES CHANGE
-bien.mod$trait_value <- as.numeric(as.character(bien.mod$trait_value))
+bien.mod$trait_value <- as.numeric(bien.mod$trait_value)
 
 #currently this removes non numeric traits e.g. flower color, whole plant dispersal syndrome
 #This is useful for now for narrowing traits but remember their exclusion
@@ -74,16 +74,13 @@ bien.ord <- na.omit(bien.ord)
 bien.orddata <- bien.ord[,-c(1)]
 
 bien.mds <- metaMDS(comm = bien.orddata, distance = "bray", trace = FALSE, autotransform = FALSE) 
- 
-plot(bien.mds$points)
-
 bien.xy <- data.frame(bien.mds$points)
 bien.xy$species <- bien.ord$species
 
 library(ggplot2)
 ggplot(bien.xy, aes(MDS1, MDS2, color = bien.xy$species)) + geom_point() + theme_bw()
 
-
+View(bien.qualchart)
 
 
 #grabbing the TRY trait file
