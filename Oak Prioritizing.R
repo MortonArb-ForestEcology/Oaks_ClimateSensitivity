@@ -77,10 +77,48 @@ bien.mds <- metaMDS(comm = bien.orddata, distance = "bray", trace = FALSE, autot
 bien.xy <- data.frame(bien.mds$points)
 bien.xy$species <- bien.ord$species
 
+
 library(ggplot2)
 ggplot(bien.xy, aes(MDS1, MDS2, color = bien.xy$species)) + geom_point() + theme_bw()
 
+bien.mds$stress
+
 View(bien.qualchart)
+
+
+##This is where I'm playing around with ordiantion techniques and transformations
+data(varechem)
+data(varespec)
+
+dist <- vegdist(bien.orddata, method = "bray")
+
+#Stolen script for visualizing the stress based on different dimensions
+NMDS.scree <- function(x) { 
+  plot(rep(1, 10), replicate(10, metaMDS(x, autotransform = F, k = 1)$stress), xlim = c(1, 10),ylim = c(0, 0.30), xlab = "# of Dimensions", ylab = "Stress", main = "NMDS stress plot")
+  for (i in 1:10) {
+    points(rep(i + 1,10),replicate(10, metaMDS(x, autotransform = F, k = i + 1)$stress))
+  }
+}
+NMDS.scree(dist)
+
+
+set.seed(2)
+
+# Here, we perform the final analysis and check the result
+NMDS1 <- metaMDS(dist, k = 2, trymax = 100, trace = F)
+# Do you know what the trymax = 100 and trace = F means?
+# Let's check the results
+NMDS1
+
+# If you don`t provide a dissimilarity matrix, metaMDS automatically applies Bray-Curtis. So in our case, the results would have to be the same
+NMDS2 <- metaMDS(bien.orddata, k = 2, trymax = 100, trace = F)
+NMDS2
+
+NMDS3 <- metaMDS(bien.orddata, k = 2, trymax = 100, trace = F, autotransform = FALSE, distance="bray")
+plot(NMDS3)
+plot(NMDS3, display = "sites", type = "n")
+points(NMDS3, display = "sites", col = "red", cex = 1.25)
+text(NMDS3, display ="species")
 
 
 #grabbing the TRY trait file
