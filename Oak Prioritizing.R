@@ -36,7 +36,7 @@ quercus.sp <- data.frame(ddply(quercus.s,~species,summarise,number=length(unique
 quercus.sp <- quercus.sp[!(quercus.sp$number < 10),]
 
 quercus.t <- data.frame(ddply(quercus.s,~trait_name,summarise,number=length(unique(species))))
-quercus.t <- quercus.t[!(quercus.t$number < 25),]
+quercus.t <- quercus.t[!(quercus.t$number < 20),]
 
 specieslist <- quercus.sp$species
 traitlist <- quercus.t$trait_name
@@ -44,9 +44,9 @@ traitlist <- quercus.t$trait_name
 #removing oak species we aren't concerned with from BIEN
 bien.mod <- bien.dat[(bien.dat$species %in% specieslist & bien.dat$trait_name %in% traitlist), ]
 bien.mod <- subset(bien.mod, select=c(1:4))
+bien.mod$trait_value <- as.character(bien.mod$trait_value)
 
 #Creating a data.frame of the qualitative traits that aren't run in ordination
-bien.mod$trait_value <- as.character(bien.mod$trait_value)
 bien.qual <- bien.mod
 bien.qual$trait_value <- gsub('[0-9]+', '', bien.qual$trait_value)
 bien.qual$trait_value <- gsub('[[:punct:]]+', '', bien.qual$trait_value)
