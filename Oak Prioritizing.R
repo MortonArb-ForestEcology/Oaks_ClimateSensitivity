@@ -36,7 +36,7 @@ quercus.sp <- data.frame(ddply(quercus.s,~species,summarise,number=length(unique
 quercus.sp <- quercus.sp[!(quercus.sp$number < 10),]
 
 quercus.t <- data.frame(ddply(quercus.s,~trait_name,summarise,number=length(unique(species))))
-quercus.t <- quercus.t[!(quercus.t$number < 20),]
+quercus.t <- quercus.t[!(quercus.t$number < 24),]
 
 specieslist <- quercus.sp$species
 traitlist <- quercus.t$trait_name
