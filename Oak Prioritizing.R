@@ -36,7 +36,7 @@ quercus.sp <- data.frame(ddply(quercus.s,~species,summarise,number=length(unique
 quercus.sp <- quercus.sp[!(quercus.sp$number < 10),]
 
 quercus.t <- data.frame(ddply(quercus.s,~trait_name,summarise,number=length(unique(species))))
-quercus.t <- quercus.t[!(quercus.t$number < 24),]
+quercus.t <- quercus.t[!(quercus.t$number < 23),]
 
 specieslist <- quercus.sp$species
 traitlist <- quercus.t$trait_name
@@ -73,7 +73,8 @@ bien.ord <- na.omit(bien.ord)
 
 bien.orddata <- bien.ord[,-c(1)]
 
-bien.mds <- metaMDS(comm = bien.orddata, distance = "bray", trace = FALSE, autotransform = FALSE) 
+set.seed(4)
+bien.mds <- metaMDS(comm = bien.orddata, distance = "bray", trace = FALSE) 
 bien.xy <- data.frame(bien.mds$points)
 bien.xy$species <- bien.ord$species
 
