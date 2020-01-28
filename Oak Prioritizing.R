@@ -16,22 +16,16 @@ quer.df <- sheets_find("Quercus Collection Metadata")
 quer.dat <- data.frame(sheets_read(quer.df, range='QuercusCollection'))
 colnames(quer.dat) <- c("Species", "Common Name", "Subgenus", "Section", "Numtrees", "Wild Origin", "Garden Origin",
                         "Geographic Distribution", "Phenology", "Dendrometer Bands", "ITRDB", "TRY_Traits", 
-                        "BIEN_Traits", "Notes")
+                        "BIEN_Traits", "BIEN_Map", "FIA_Map", "Notes")
 
 #Grabbing the BIEN trait file for comparison
 setwd(path.t)
 bien.dat <- read.csv("BIEN_fulllist.csv")
 colnames(bien.dat)
 
-#removing oaks we are not doing phenology monitoring for#
-quer.org <- quer.dat[!(quer.dat$Phenology =="N"),]
-
-#removing oaks that don't have both TRY and BIEN traits. Since none have BIEN but not TRY this works for only BIEN
-quer.org <- na.omit(quer.org)
-
 #creating a list of species and traits to include in ordination
 quercus.mod <- subset(bien.dat, select= c("species", "trait_name"))
-quercus.s <- quercus.mod %>% distinct()
+quercus.s <- distinct(quercus.mod)
 quercus.sp <- data.frame(ddply(quercus.s,~species,summarise,number=length(unique(trait_name))))
 quercus.sp <- quercus.sp[!(quercus.sp$number < 10),]
 
@@ -41,7 +35,7 @@ quercus.t <- quercus.t[!(quercus.t$number < 23),]
 specieslist <- quercus.sp$species
 traitlist <- quercus.t$trait_name
 
-#removing oak species we aren't concerned with from BIEN
+#removing oak species and traits we aren't concerned with from BIEN
 bien.mod <- bien.dat[(bien.dat$species %in% specieslist & bien.dat$trait_name %in% traitlist), ]
 bien.mod <- subset(bien.mod, select=c(1:4))
 bien.mod$trait_value <- as.character(bien.mod$trait_value)
