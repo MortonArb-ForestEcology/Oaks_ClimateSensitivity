@@ -10,6 +10,18 @@ library(ggplot2)
 path.base <- "G:/My Drive/Oaks_ClimateSensitivity/"
 path.t <- paste(path.base, "Traits/", sep="")
 
+setwd(path.base)
+
+#grabbing the file from google drive and making it a workable data frame
+quer.df <- sheets_find("Quercus Collection Metadata")
+quer.dat <- data.frame(sheets_read(quer.df, range='QuercusCollection'))
+colnames(quer.dat) <- c("Species", "Common Name", "Subgenus", "Section", "Numtrees", "Wild Origin", "Garden Origin",
+                        "Geographic Distribution", "Phenology", "Dendrometer Bands", "ITRDB", "TRY_Traits", 
+                        "BIEN_Traits", "BIEN_Map", "FIA_Map", "Notes")
+
+quer.dat <- quer.dat[!(quer.dat$Phenology == "N"),]
+
+
 #Grabbing the BIEN trait file for comparison
 setwd(path.t)
 bien.dat <- read.csv("BIEN_fulllist.csv")
@@ -17,8 +29,8 @@ colnames(bien.dat)
 View(bien.dat)
 
 #creating a list of species and traits to include in ordination
-quercus.mod <- subset(bien.dat, select= c("species", "trait_name"))
-quercus.s <- distinct(quercus.mod)
+#quercus.mod <- subset(bien.dat, select= c("species", "trait_name"))
+#quercus.s <- distinct(quercus.mod)
 
 #quercus.sp <- data.frame(ddply(quercus.s,~species,summarise,number=length(unique(trait_name))))
 #quercus.sp <- quercus.sp[!(quercus.sp$number < 10),]
@@ -26,9 +38,9 @@ quercus.s <- distinct(quercus.mod)
 #quercus.t <- data.frame(ddply(quercus.s,~trait_name,summarise,number=length(unique(species))))
 #quercus.t <- quercus.t[!(quercus.t$number < 13),]
 
-#specieslist <- quercus.sp$species
 #traitlist <- quercus.t$trait_name
 
+specieslist <- quer.dat$Species
 traitlist <- list("leaf area per leaf dry mass", "seed mass", "stem wood density", "whole plant height",
                   "leaf nitrogen content per leaf dry mass", "maximum whole plant longevity")
 
@@ -63,7 +75,6 @@ ggplot(bien.xy, aes(MDS1, MDS2, color = bien.xy$species)) + geom_point() + theme
 
 bien.mds$stress
 
-
 #Creating a data.frame of the qualitative traits that aren't run in ordination
 bien.qual <- bien.mod
 bien.qual$trait_value <- gsub('[0-9]+', '', bien.qual$trait_value)
@@ -85,14 +96,5 @@ colnames(try.dat)
 
 #removing oak species we aren't concerned with from TRY
 try.mod <- try.dat[try.dat$species %in% specieslist, ]
-
-setwd(path.base)
-
-#grabbing the file from google drive and making it a workable data frame
-quer.df <- sheets_find("Quercus Collection Metadata")
-quer.dat <- data.frame(sheets_read(quer.df, range='QuercusCollection'))
-colnames(quer.dat) <- c("Species", "Common Name", "Subgenus", "Section", "Numtrees", "Wild Origin", "Garden Origin",
-                        "Geographic Distribution", "Phenology", "Dendrometer Bands", "ITRDB", "TRY_Traits", 
-                        "BIEN_Traits", "BIEN_Map", "FIA_Map", "Notes")
 
 
