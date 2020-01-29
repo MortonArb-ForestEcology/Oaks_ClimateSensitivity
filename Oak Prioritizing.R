@@ -25,8 +25,6 @@ quer.dat <- quer.dat[!(quer.dat$Phenology == "N"),]
 #Grabbing the BIEN trait file for comparison
 setwd(path.t)
 bien.dat <- read.csv("BIEN_fulllist.csv")
-colnames(bien.dat)
-View(bien.dat)
 
 #creating a list of species and traits to include in ordination
 #quercus.mod <- subset(bien.dat, select= c("species", "trait_name"))
@@ -46,15 +44,20 @@ traitlist <- list("leaf area per leaf dry mass", "seed mass", "stem wood density
 
 #removing oak species and traits we aren't concerned with from BIEN
 bien.mod <- bien.dat[(bien.dat$species %in% specieslist & bien.dat$trait_name %in% traitlist), ]
-bien.mod <- subset(bien.mod, select=c(1:4))
+bien.mod <- bien.mod[!(is.na(bien.mod$latitude)== T | is.na(bien.mod$longitude)) == T,]
 bien.mod$trait_value <- as.character(bien.mod$trait_value)
+
+bien.mod <- subset(bien.mod, select=c(1:4,6:7))
 
 #Converting to character then number YOU MUST CONVERT TO CHARCTER FIRST OR VALUES CHANGE
 bien.mod$trait_value <- as.numeric(bien.mod$trait_value)
 
+bien.lat <- bien.mod[(duplicated(bien.mod$latitude & bien.mod$longitude)),]
+
+
 #currently this removes non numeric traits e.g. flower color, whole plant dispersal syndrome
 #This is useful for now for narrowing traits but remember their exclusion
-bien.agg <- aggregate(trait_value~species+trait_name, data=bien.mod, median)
+bien.agg <- aggregate(trait_value~species+trait_name+project_pi, data=bien.mod, median)
 
 #Here is the actual ordination script#
 bien.ord <- spread(bien.agg, trait_name, trait_value)
@@ -75,6 +78,8 @@ ggplot(bien.xy, aes(MDS1, MDS2, color = bien.xy$species)) + geom_point() + theme
 
 bien.mds$stress
 
+View(bien.qualchart)
+
 #Creating a data.frame of the qualitative traits that aren't run in ordination
 bien.qual <- bien.mod
 bien.qual$trait_value <- gsub('[0-9]+', '', bien.qual$trait_value)
@@ -85,8 +90,6 @@ bien.qualagg <- bien.qual %>%
   summarise(trait_value = paste(unique(trait_value), collapse = ', '))
 
 bien.qualchart <- spread(bien.qualagg, trait_name, trait_value)
-
-View(bien.qualchart)
 
 #grabbing the TRY trait file
 setwd(path.t)
