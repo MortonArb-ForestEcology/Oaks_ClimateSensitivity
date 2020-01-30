@@ -16,7 +16,7 @@ setwd(path.base)
 quer.df <- sheets_find("Quercus Collection Metadata")
 quer.dat <- data.frame(sheets_read(quer.df, range='QuercusCollection'))
 colnames(quer.dat) <- c("Species", "Common Name", "Subgenus", "Section", "Numtrees", "Wild Origin", "Garden Origin",
-                        "Geographic Distribution", "Phenology", "Dendrometer Bands", "ITRDB", "TRY_Traits", 
+                        "Geographic Distribution", "Phenology", "Dendrometer Bands", "ITRDB", "NPN", "TRY_Traits", 
                         "BIEN_Traits", "BIEN_Map", "FIA_Map", "Notes")
 
 quer.dat <- quer.dat[!(quer.dat$Phenology == "N"),]
