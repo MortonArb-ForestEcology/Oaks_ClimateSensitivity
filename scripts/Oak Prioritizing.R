@@ -1,6 +1,6 @@
 #Script for Prioritizing oaks
 library(googlesheets4)
-library(plyr)
+library(data.table)
 library(dplyr)
 library(tidyr)
 library(vegan)
@@ -19,7 +19,11 @@ colnames(quer.dat) <- c("Species", "Common Name", "Subgenus", "Section", "Numtre
                         "Geographic Distribution", "Phenology", "Dendrometer Bands", "ITRDB", "NPN", "TRY_Traits", 
                         "BIEN_Traits", "BIEN_Map", "FIA_Map", "Notes")
 
-quer.dat <- quer.dat[!(quer.dat$Phenology == "N"),]
+quer.dat <- quer.dat[(quer.dat$Phenology != "N" & quer.dat$ITRDB != "N"),]
+
+quer.world <- quer.dat[!(quer.dat$`Geographic Distribution` %like% "USA"),]
+
+quer.usa <- quer.dat[(quer.dat$NPN != "N"),]
 
 
 #Grabbing the BIEN trait file for comparison
@@ -39,12 +43,14 @@ bien.dat <- read.csv("BIEN_fulllist.csv")
 #traitlist <- quercus.t$trait_name
 
 specieslist <- quer.dat$Species
-traitlist <- list("leaf area per leaf dry mass", "seed mass", "stem wood density", "whole plant height",
-                  "leaf nitrogen content per leaf dry mass", "maximum whole plant longevity")
+traitlist <- list("leaf area per leaf dry mass", "seed mass", "stem wood density",
+                  "leaf nitrogen content per leaf dry mass")
 
 #removing oak species and traits we aren't concerned with from BIEN
 bien.mod <- bien.dat[(bien.dat$species %in% specieslist & bien.dat$trait_name %in% traitlist), ]
-bien.mod <- bien.mod[!(is.na(bien.mod$latitude)== T | is.na(bien.mod$longitude)) == T,]
+
+#commented out because it seems lat and long aren't useful
+#bien.mod <- bien.mod[!(is.na(bien.mod$latitude)== T | is.na(bien.mod$longitude)) == T,]
 bien.mod$trait_value <- as.character(bien.mod$trait_value)
 
 bien.mod <- subset(bien.mod, select=c(1:4,6:7))
@@ -57,7 +63,7 @@ bien.lat <- bien.mod[(duplicated(bien.mod$latitude & bien.mod$longitude)),]
 
 #currently this removes non numeric traits e.g. flower color, whole plant dispersal syndrome
 #This is useful for now for narrowing traits but remember their exclusion
-bien.agg <- aggregate(trait_value~species+trait_name+project_pi, data=bien.mod, median)
+bien.agg <- aggregate(trait_value~species+trait_name, data=bien.mod, median)
 
 #Here is the actual ordination script#
 bien.ord <- spread(bien.agg, trait_name, trait_value)
