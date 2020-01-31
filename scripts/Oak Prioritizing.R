@@ -1,7 +1,6 @@
 #Script for Prioritizing oaks
-library(googlesheets4)
-library(data.table)
 library(dplyr)
+library(data.table)
 library(tidyr)
 library(vegan)
 library(ape)
@@ -13,8 +12,8 @@ path.t <- paste(path.base, "Traits/", sep="")
 setwd(path.base)
 
 #grabbing the file from google drive and making it a workable data frame
-quer.df <- sheets_find("Quercus Collection Metadata")
-quer.dat <- data.frame(sheets_read(quer.df, range='QuercusCollection'))
+quer.df <- googlesheets4::sheets_find("Quercus Collection Metadata")
+quer.dat <- data.frame(googlesheets4::sheets_read(quer.df, range='QuercusCollection'))
 colnames(quer.dat) <- c("Species", "Common Name", "Subgenus", "Section", "Numtrees", "Wild Origin", "Garden Origin",
                         "Geographic Distribution", "Phenology", "Dendrometer Bands", "ITRDB", "NPN", "TRY_Traits", 
                         "BIEN_Traits", "BIEN_Map", "FIA_Map", "Notes")
@@ -37,7 +36,7 @@ bien.dat <- read.csv("BIEN_fulllist.csv")
 #quercus.sp <- data.frame(ddply(quercus.s,~species,summarise,number=length(unique(trait_name))))
 #quercus.sp <- quercus.sp[!(quercus.sp$number < 10),]
 
-#quercus.t <- data.frame(ddply(quercus.s,~trait_name,summarise,number=length(unique(species))))
+#quercus.t <- data.frame(plyr::ddply(quercus.s,~trait_name,summarise,number=length(unique(species))))
 #quercus.t <- quercus.t[!(quercus.t$number < 13),]
 
 #traitlist <- quercus.t$trait_name
