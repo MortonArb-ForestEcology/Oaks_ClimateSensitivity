@@ -43,35 +43,22 @@ daymet.tmax <- daymet.tmax[(daymet.tmax$measurement == "tmax..deg.c."),]
 daymet.tmin <- daymet.df %>% group_by(year, measurement) %>% summarise(min = min(value))
 daymet.tmin <- daymet.tmin[(daymet.tmin$measurement == "tmin..deg.c."),]
 
-#calculating day of first hard freeze (might work these into one loop but unsure how right now)
+
+#calculating last freeze and first freeze of every year
 daymet.frz <- daymet.df[(daymet.df$measurement == "tmin..deg.c." & daymet.df$value <=0),]
 
 year.frz <- ystart
 rows <- 1
 for(i in rows:nrow(daymet.frz)){
   if(daymet.frz[i, "year"] == year.frz){
-    if(daymet.frz[i, "yday"] > 171){
-      daymet.frz[i, "first.freeze"] <- TRUE
-      year.frz <- year.frz + 1
-    } 
+    if(daymet.frz[i, "yday"] < 171){
+        daymet.frz[i, "freeze"] <- 1
+        daymet.frz[i+1, "freeze"] <- 1
+        daymet.frz[i-1, "freeze"] <- 0
+    } else{year.frz <- year.frz+1}
   }
   rows <- rows+1
 }
-ffreeze.df <- daymet.frz[!(is.na(daymet.frz$last.freeze)),]
+freeze.df <- daymet.frz[!(daymet.frz$freeze == 0 | is.na(daymet.frz$freeze) == T),]
 
-#calculating day of last hard freeze (make it add to next freeze and this can be one loop)
-daymet.lfrz <- daymet.df[(daymet.df$measurement == "tmin..deg.c." & daymet.df$value <=0),]
 
-year.lfrz <- ystart
-l.rows <- 1
-for(i in l.rows:nrow(daymet.lfrz)){
-  if(daymet.lfrz[i, "year"] == year.lfrz){
-    if(daymet.lfrz[i, "yday"] < 171){
-        daymet.lfrz[i, "last.freeze"] <- 1
-        daymet.lfrz[i-1, "last.freeze"] <- 0
-    } else{year.lfrz <- year.lfrz+1}
-  }
-  l.rows <- l.rows+1
-}
-
-lfreeze.df <- daymet.lfrz[(daymet.lfrz$last.freeze == 1),]
