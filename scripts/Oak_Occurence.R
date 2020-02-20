@@ -61,4 +61,34 @@ for(i in rows:nrow(daymet.frz)){
 }
 freeze.df <- daymet.frz[!(daymet.frz$freeze == 0 | is.na(daymet.frz$freeze) == T),]
 
+#Max consecutive days with and withou precipitation
+daymet.precip <- daymet.df[(daymet.df$measurement == "prcp..mm.day."),]
+
+year.precip <- ystart
+prows <- 1
+w.p <- 0
+wo.p <- 0
+for(i in prows:nrow(daymet.precip)){
+    if(daymet.precip[i, "value"] != 0){
+      w.p <- w.p + 1
+      wo.p <- 0
+    }else {w.p <- 0
+            wo.p <- wo.p+1}
+  daymet.precip[i, "days.precip"] <- w.p
+  daymet.precip[i, "days.wo.precip"] <- wo.p
+  daymet.precip[i, "dry.start"] <- daymet.precip[(i-wo.p)+1, "yday"]
+}
+
+precip.df <-  daymet.precip %>% group_by(year) %>% summarise(days.wo.precip = max(days.wo.precip), 
+                                                             days.precip = max(days.precip),
+                                                             max.precip =max(value))
+#creating a data frame allowing us to know when the dry periods were
+dry.dates <- daymet.precip %>% group_by(year) %>% filter(days.wo.precip == max(days.wo.precip))
+dry.dates <- dry.dates[,c(6:7,12)]
+
+dry.df <- daymet.df %>% group_by(year) %>% summarise(mean.temp = mean())
+
+mean(daymet.df[])  
+findInterval(daymet.df, c(-Inf, daymet.df[4409,"yday"], daymet.df[4423, "yday"], Inf))  
+  
 
