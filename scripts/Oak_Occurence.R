@@ -35,53 +35,53 @@ q.lat <- q.lat[,c(3,1,2)]
 
 daymet.df <- daymetr::download_daymet(lat = 34.8101, lon = -86.9814, start = ystart, end = yend, internal = TRUE, simplify = TRUE)
 
-#calculating annual max temperature for each point
-daymet.tmax <- daymet.df %>% group_by(year, measurement) %>% summarise(max = max(value))
-daymet.tmax <- daymet.tmax[(daymet.tmax$measurement == "tmax..deg.c."),]
+daymet.df <- tidyr::spread(daymet.df, measurement, value)
 
-#calculating annual min temeperature for each point
-daymet.tmin <- daymet.df %>% group_by(year, measurement) %>% summarise(min = min(value))
-daymet.tmin <- daymet.tmin[(daymet.tmin$measurement == "tmin..deg.c."),]
+#calculating annual max temperature for each point
+daymet.mean <- daymet.df %>% group_by(year) %>% mutate(max.temp = max(tmax..deg.c.),
+                                                       min.temp = min(tmin..deg.c.))
 
 
 #calculating last freeze and first freeze of every year
-daymet.frz <- daymet.df[(daymet.df$measurement == "tmin..deg.c." & daymet.df$value <=0),]
+daymet.frz <- daymet.df[(daymet.df$tmin..deg.c. <=0),]
 
 year.frz <- ystart
 rows <- 1
 for(i in rows:nrow(daymet.frz)){
   if(daymet.frz[i, "year"] == year.frz){
     if(daymet.frz[i, "yday"] < 171){
-        daymet.frz[i, "freeze"] <- 1
-        daymet.frz[i+1, "freeze"] <- 1
+        daymet.frz[i, "freeze"] <- "last.freeze"
+        daymet.frz[i+1, "freeze"] <- "first.freeze"
         daymet.frz[i-1, "freeze"] <- 0
     } else{year.frz <- year.frz+1}
   }
   rows <- rows+1
 }
 freeze.df <- daymet.frz[!(daymet.frz$freeze == 0 | is.na(daymet.frz$freeze) == T),]
+freeze.df <- tidyr::spread(freeze.df, freeze, yday)
+freeze.df <- freeze.df %>% group_by(year) %>% summarise(first.freeze = max(first.freeze, na.rm = T),
+                                                        last.freeze = max(last.freeze, na.rm = T))
 
 #Max consecutive days with and withou precipitation
-daymet.precip <- daymet.df[(daymet.df$measurement == "prcp..mm.day."),]
-
 year.precip <- ystart
 prows <- 1
 w.p <- 0
 wo.p <- 0
-for(i in prows:nrow(daymet.precip)){
-    if(daymet.precip[i, "value"] != 0){
+for(i in prows:nrow(daymet.mean)){
+    if(daymet.mean[i, "prcp..mm.day."] != 0){
       w.p <- w.p + 1
       wo.p <- 0
     }else {w.p <- 0
             wo.p <- wo.p+1}
-  daymet.precip[i, "days.precip"] <- w.p
-  daymet.precip[i, "days.wo.precip"] <- wo.p
-  daymet.precip[i, "dry.start"] <- daymet.precip[(i-wo.p)+1, "yday"]
+  daymet.mean[i, "days.precip"] <- w.p
+  daymet.mean[i, "days.wo.precip"] <- wo.p
 }
 
-precip.df <-  daymet.precip %>% group_by(year) %>% summarise(days.wo.precip = max(days.wo.precip), 
+daymet.mod <-  daymet.mean %>% group_by(year) %>% mutate(days.wo.precip = max(days.wo.precip), 
                                                              days.precip = max(days.precip),
-                                                             max.precip =max(value))
+                                                             max.precip =max(prcp..mm.day.))
+
+
 #creating a data frame allowing us to know when the dry periods were
 dry.dates <- daymet.precip %>% group_by(year) %>% filter(days.wo.precip == max(days.wo.precip))
 dry.dates <- dry.dates[,c(6:7,12)]
