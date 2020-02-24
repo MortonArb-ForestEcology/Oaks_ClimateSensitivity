@@ -33,10 +33,28 @@ lat.list <- daymetr::download_daymet_batch(file_location = "test_lat.csv",
                       end = yend,
                       internal = T)
 
+df.output <- data.frame(latitude=numeric(),
+                        longitude=numeric(),
+                        altitude=numeric(),
+                        year=numeric(),
+                        dry.max=numeric(),
+                        dry.min=numeric(),
+                        dry.mean.max=numeric(),
+                        dry.mean.min=numeric(),
+                        days.wo.precip=numeric(),
+                        days.precip=numeric(),
+                        max.precip=numeric(),
+                        max.temp=numeric(),
+                        min.temp=numeric(),
+                        first.freeze=numeric(),
+                        last.freeze=numeric())
+
+df.output$latitude <- lat.list[[i]]$latitude
+df.output$longitude <- lat.list[[i]]$longitude
+df.output$altitude <- lat.list[[i]]$altitude                    
 
 for(i in length(lat.list)){
   df.tmp <- lat.list[[i]]$data
-  
   for(YR in min(df.tmp$year):max(df.tmp$year)){
     df.yr <- df.tmp[df.tmp$year==YR,]
     w.p <- 0
@@ -92,22 +110,16 @@ for(i in length(lat.list)){
     freeze.df <- df.frz[!(df.frz$freeze == 0 | is.na(df.frz$freeze) == T),]
     #seperating the last freeze and first freeze of each year
     freeze.df <- tidyr::spread(freeze.df, freeze, yday)
-    freeze.df <- freeze.df %>% group_by(year) %>% summarise(first.freeze = max(first.freeze, na.rm = T),
-                                                            last.freeze = max(last.freeze, na.rm = T))
+    freeze.df <- freeze.df %>%  summarise(year = max(year),
+                                          first.freeze = max(first.freeze, na.rm = T),
+                                          last.freeze = max(last.freeze, na.rm = T))
     
     #merging them together for the final data frame  
     daymet.done <- merge(df.fin, freeze.df, by=c("year"))
     
-    
   }
   
 }
-
-
-
-
-
-
 
 daymet.df <- daymetr::download_daymet(lat = 34.8101, lon = -86.9814, start = ystart, end = yend, internal = TRUE, simplify = TRUE)
 
