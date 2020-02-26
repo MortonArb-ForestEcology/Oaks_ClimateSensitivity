@@ -3,10 +3,10 @@ library(dplyr)
 
 #setting file path
 path.points <- "G:/My Drive/Oaks_ClimateSensitivity/Occurrence/"
-
 setwd(path.points)
-species <- "Q_arkansana"
+species <- "Q_falcata"
 ystart <- 1980
+
 #make sure the yend of the data matches what you enter. Sometimes daymet truncates and this varibale will become wrong later in the script
 yend <- 2018
 
@@ -22,8 +22,8 @@ q.lat <- q.occur[,(c=8:9)]
 q.lat$site <- "Daymet"
 q.lat <- q.lat[,c(3,1,2)]
 
-#Writing the csv file of lat and longs because batch function needs to read a file instea of a dataframe
-write.csv(q.lat, file.path("C:/Users/lfitzpatrick/Documents", file = occurencefile), row.names=FALSE)
+#Writing the csv file of lat and longs because batch function needs to read a file instead of a dataframe
+write.csv(q.lat, file.path(path.points, file = occurencefile), row.names=FALSE)
 
 
 #Downloading all of the damet data for each point. Internal =TRUE means it creates a nested list. Set false to actually download a file
@@ -39,17 +39,19 @@ lat.list <- lat.list[sapply(lat.list, function(x) is.list(x))]
 #loop to create dataframe containing values of interest for every year at every occurence points
 
 #creating a progress bar for the loop
-pb <- txtProgressBar(min=0, max=(length(lat.list)/2), style=3)
+pb <- txtProgressBar(min=0, max=length(lat.list)*((yend-ystart)+1), style=3)
 pb.ind=0
 
+#initializing the output dataframe
 i <- 1
-df.output <- data.frame(latitude=rep(lat.lis[[i]]$latitude, ((yend-ystart)+1)) ,
-                        longitude=rep(lat.lis[[i]]$longitude, ((yend-ystart)+1)),
-                        altitude=rep(lat.lis[[i]]$altitude, ((yend-ystart)+1)))
+df.output <- data.frame(latitude=rep(lat.list[[i]]$latitude, ((yend-ystart)+1)) ,
+                        longitude=rep(lat.list[[i]]$longitude, ((yend-ystart)+1)),
+                        altitude=rep(lat.list[[i]]$altitude, ((yend-ystart)+1)))
 count <- 1
 YR <- ystart
 for(i in seq_along(lat.list)){
   df.tmp <- lat.list[[i]]$data
+  
   #Loop that goes through every year for each point
   for(YR in min(df.tmp$year):max(df.tmp$year)){
     setTxtProgressBar(pb, pb.ind); pb.ind=pb.ind+1
@@ -57,6 +59,7 @@ for(i in seq_along(lat.list)){
     w.p <- 0
     wo.p <- 0
     rows <- 1
+    
     #loop that determines the length of dry and wet periods as well as yearlong temp stats
     for(t in rows:nrow(df.yr)){
       if(df.yr[t, "prcp..mm.day."] != 0){
@@ -73,6 +76,7 @@ for(i in seq_along(lat.list)){
                                 max.temp = max(tmax..deg.c.),
                                 min.temp = min(tmin..deg.c.))
     
+    #pulling out the values of the first and last freeze
     l.freeze <- df.yr[df.yr$yday==max(df.yr[df.yr$yday<180 & !is.na(df.yr$tmin..deg.c.) 
                                                & df.yr$tmin..deg.c. < 0, c("yday")]),]$yday
     f.freeze <- df.yr[df.yr$yday==min(df.yr[df.yr$yday>180 & !is.na(df.yr$tmin..deg.c.) 
@@ -92,6 +96,7 @@ for(i in seq_along(lat.list)){
     
     df.sum <- df.sum[!(is.na(df.sum$dry)==T),]
     
+    #conversion to dataframe that output will be based on
     df.dry <- df.sum %>%  summarise(dry.max = max(tmax..deg.c.),
                                     dry.min = min(tmin..deg.c.),
                                     dry.mean.max = mean(tmax..deg.c.),
@@ -132,17 +137,12 @@ filename <- paste(species, "_daymet_data.csv", sep="")
 
 write.csv(df.output, file.path(path.out, file = filename), row.names = F)
 
-#Could defintiely clean up parts of this for efficiency, CUrrently runs at about 1.2 points per second
-#Could clean by not using rbind to build the final dataframe. I can't figure out how but IM sure CHristy knows
-#COuld also clean by not using a loop for the dry period loop or the freeze which sounds possible
 
 
-last.freeze <- df.yr[df.yr$yday==max(df.yr[df.yr$yday<180 & !is.na(df.yr$tmin..deg.c.) & df.yr$tmin..deg.c. < 0, c("yday")]),]
-
-
+#Keeping these incase of testing single points
 daymet.df <- daymetr::download_daymet(lat = 33.59, lon = -92.88, start = ystart, end = yend, internal = TRUE, simplify = TRUE)
 
 daymet.df <- tidyr::spread(daymet.df, measurement, value)
 
-df.yr <- daymet.df[daymet.df$year==1981,]
+
 
