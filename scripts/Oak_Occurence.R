@@ -9,7 +9,7 @@ species <- "Q_arkansana"
 ystart <- 1980
 yend <- 2018
 
-occurencefile <- paste(species, "occurence_points.csv", sep="")
+occurencefile <- paste(species, "_occurence_points.csv", sep="")
 
 #loading species list of occurence points
 q.occur <- read.csv(paste(species, "_spatial_data.csv", sep=""))
@@ -22,7 +22,7 @@ q.lat$site <- "Daymet"
 q.lat <- q.lat[,c(3,1,2)]
 
 #Writing the csv file of lat and longs because batch function needs to read a file instea of a dataframe
-write.csv(q.lat, file.path("C:/Users/lucie/Documents", file = occurencefile), row.names=FALSE)
+write.csv(q.lat, file.path("C:/Users/lfitzpatrick/Documents", file = occurencefile), row.names=FALSE)
 
 
 #Downloading all of the damet data for each point. Internal =TRUE means it creates a nested list. Set false to actually download a file
@@ -34,14 +34,18 @@ lat.list <- daymetr::download_daymet_batch(file_location = occurencefile,
 lat.list <- lat.list[sapply(lat.list, function(x) is.list(x))]
 
 
-df.output <- data.frame()
-
 #loop to create dataframe containing values of interest for every year at every occurence points
+pb <- txtProgressBar(min=0, max=length(lat.list)*((yend-ystart)+1)*365, style=3)
+pb.ind=0
+
 i <- 1
 YR <- ystart
 for(i in seq_along(lat.list)){
   df.tmp <- lat.list[[i]]$data
-  
+  df.output <- data.frame(latitude=rep(lat.list[[i]]$latitude, ((yend-ystart)+1)) ,
+                          longitude=rep(lat.list[[i]]$longitude, ((yend-ystart)+1)),
+                          altitude=rep(lat.list[[i]]$altitude, ((yend-ystart)+1)))
+                          
   #Loop that goes through every year for each point
   for(YR in min(df.tmp$year):max(df.tmp$year)){
     df.yr <- df.tmp[df.tmp$year==YR,]
@@ -59,66 +63,58 @@ for(i in seq_along(lat.list)){
       df.yr[t, "days.precip"] <- w.p
       df.yr[t, "days.wo.precip"] <- wo.p
     }
-    df.dry <-  df.yr %>% mutate(max.wo.precip = max(days.wo.precip), 
+    df.sum <-  df.yr %>% mutate(max.wo.precip = max(days.wo.precip), 
                                 days.precip = max(days.precip),
                                 max.precip =max(prcp..mm.day.),
                                 max.temp = max(tmax..deg.c.),
                                 min.temp = min(tmin..deg.c.))
     
+    l.freeze <- df.yr[df.yr$yday==max(df.yr[df.yr$yday<180 & !is.na(df.yr$tmin..deg.c.) 
+                                               & df.yr$tmin..deg.c. < 0, c("yday")]),]$yday
+    f.freeze <- df.yr[df.yr$yday==min(df.yr[df.yr$yday>180 & !is.na(df.yr$tmin..deg.c.) 
+                                                & df.yr$tmin..deg.c. < 0, c("yday")]),]$yday
+    df.sum$last.freeze <- ifelse(length(l.freeze) == 0, NA, l.freeze)
+    df.sum$first.freeze <- ifelse(length(f.freeze) == 0, NA, f.freeze)
+    
     #loop seperating out the dry period so summary statistics can be done on that section
     drows <- 1
-    for(d in drows:nrow(df.dry)){
-      if(df.dry[d, "days.wo.precip"] == df.dry[d, "max.wo.precip"]){
-        v <- as.numeric(df.dry[d, "max.wo.precip"])
-        df.dry[(((d-v)+1):d), "dry"] <- 1
+    for(d in drows:nrow(df.sum)){
+      if(df.sum[d, "days.wo.precip"] == df.sum[d, "max.wo.precip"]){
+        v <- as.numeric(df.sum[d, "max.wo.precip"])
+        df.sum[(((d-v)+1):d), "dry"] <- 1
       }
       drows <- drows+1
     }
     
-    df.dry <- df.dry[!(is.na(df.dry$dry)==T),]
+    df.sum <- df.sum[!(is.na(df.sum$dry)==T),]
     
-    df.fin <- df.dry %>%  summarise(year = max(year),
-                                    dry.max = max(tmax..deg.c.),
+    df.dry <- df.sum %>%  summarise(dry.max = max(tmax..deg.c.),
                                     dry.min = min(tmin..deg.c.),
                                     dry.mean.max = mean(tmax..deg.c.),
                                     dry.mean.min = mean(tmin..deg.c.),
-                                    days.wo.precip = max(max.wo.precip), 
+                                    days.wo.precip = max(days.wo.precip), 
                                     days.precip = max(days.precip),
-                                    max.precip = max(max.precip),
-                                    max.temp = max(max.temp) ,
-                                    min.temp = min(min.temp))
+                                    max.precip =max(prcp..mm.day.),
+                                    max.temp = max(tmax..deg.c.),
+                                    min.temp = min(tmin..deg.c.),
+                                    last.freeze = max(last.freeze),
+                                    first.freeze = max(first.freeze),
+                                    year = max(year))
+                                    
     
-    df.frz <- df.yr[(df.yr$tmin..deg.c. <=0),]
-    
-    #Final loop to determine the freeze values. 
-    frows <- 1
-    for(f in frows:nrow(df.frz)){
-      if(df.frz[f, "yday"] < 171){
-        df.frz[f, "freeze"] <- "last.freeze"
-        df.frz[f+1, "freeze"] <- "first.freeze"
-        df.frz[f-1, "freeze"] <- 0
-      }else{df.frz[f, "freeze"] <- "first.freeze"
-            df.frz[f+1, "freeze"] <- 0
-        
-      }
-      frows <- frows+1
-    }
-    freeze.df <- df.frz[!(df.frz$freeze == 0 | is.na(df.frz$freeze) == T),]
-    
-    #seperating the last freeze and first freeze of each year
-    freeze.df <- tidyr::spread(freeze.df, freeze, yday)
-    freeze.df <- freeze.df %>%  summarise(year = max(year, na.rm = T),
-                                          first.freeze = max(first.freeze, na.rm = T),
-                                          last.freeze = max(last.freeze, na.rm = T))
-    freeze.df[freeze.df == "-Inf"] <- NA
-    
-    #merging them together for the final data frame  
-    
-    daymet.done <- merge(df.fin, freeze.df, by=c("year"))
-    daymet.done$latitude <- lat.list[[i]]$latitude
-    daymet.done$longitude <- lat.list[[i]]$longitude
-    daymet.done$altitude <- lat.list[[i]]$altitude 
-    df.output <- rbind(df.output, daymet.done)
+    #merging them together for the final data frame
+    df.output$year <- df.dry$year
+    df.output$days.wo.precip <- df.dry$days.wo.precip
+    df.output$days.precip <- df.dry$days.precip
+    df.output$max.precip <- df.dry$max.precip
+    df.output$max.temp <- df.dry$max.temp
+    df.output$min.temp <- df.dry$min.temp
+    df.output$first.freeze <- df.dry$first.freeze
+    df.output$last.freeze <- df.dry$last.freeze
+    df.output$dry.max <- df.dry$dry.max
+    df.output$dry.min <- df.dry$dry.min
+    df.output$dry.mean.max <- df.dry$dry.mean.max
+    df.output$dry.mean.min <- df.dry$dry.mean.min
     
   }
 }
@@ -133,27 +129,12 @@ write.csv(df.output, file.path(path.out, file = filename), row.names = F)
 #COuld also clean by not using a loop for the dry period loop or the freeze which sounds possible
 
 
+last.freeze <- df.yr[df.yr$yday==max(df.yr[df.yr$yday<180 & !is.na(df.yr$tmin..deg.c.) & df.yr$tmin..deg.c. < 0, c("yday")]),]
 
 
-
-daymet.df <- daymetr::download_daymet(lat = 30.26521083, lon = -85.62025028, start = ystart, end = yend, internal = TRUE, simplify = TRUE)
+daymet.df <- daymetr::download_daymet(lat = 33.59, lon = -92.88, start = ystart, end = yend, internal = TRUE, simplify = TRUE)
 
 daymet.df <- tidyr::spread(daymet.df, measurement, value)
 
-df.output <- data.frame(latitude=numeric(),
-                        longitude=numeric(),
-                        altitude=numeric(),
-                        year=numeric(),
-                        dry.max=numeric(),
-                        dry.min=numeric(),
-                        dry.mean.max=numeric(),
-                        dry.mean.min=numeric(),
-                        days.wo.precip=numeric(),
-                        days.precip=numeric(),
-                        max.precip=numeric(),
-                        max.temp=numeric(),
-                        min.temp=numeric(),
-                        first.freeze=numeric(),
-                        last.freeze=numeric())
-
+df.yr <- daymet.df[daymet.df$year==1981,]
 
