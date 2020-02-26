@@ -7,6 +7,7 @@ path.points <- "G:/My Drive/Oaks_ClimateSensitivity/Occurrence/"
 setwd(path.points)
 species <- "Q_arkansana"
 ystart <- 1980
+#make sure the yend of the data matches what you enter. Sometimes daymet truncates and this varibale will become wrong later in the script
 yend <- 2018
 
 occurencefile <- paste(species, "_occurence_points.csv", sep="")
@@ -31,28 +32,31 @@ lat.list <- daymetr::download_daymet_batch(file_location = occurencefile,
                       end = yend,
                       internal = T)
 
+#removing failed downloads 
 lat.list <- lat.list[sapply(lat.list, function(x) is.list(x))]
 
 
 #loop to create dataframe containing values of interest for every year at every occurence points
-pb <- txtProgressBar(min=0, max=length(lat.list)*((yend-ystart)+1)*365, style=3)
+
+#creating a progress bar for the loop
+pb <- txtProgressBar(min=0, max=(length(lat.list)/2), style=3)
 pb.ind=0
 
 i <- 1
+df.output <- data.frame(latitude=rep(lat.lis[[i]]$latitude, ((yend-ystart)+1)) ,
+                        longitude=rep(lat.lis[[i]]$longitude, ((yend-ystart)+1)),
+                        altitude=rep(lat.lis[[i]]$altitude, ((yend-ystart)+1)))
+count <- 1
 YR <- ystart
 for(i in seq_along(lat.list)){
   df.tmp <- lat.list[[i]]$data
-  df.output <- data.frame(latitude=rep(lat.list[[i]]$latitude, ((yend-ystart)+1)) ,
-                          longitude=rep(lat.list[[i]]$longitude, ((yend-ystart)+1)),
-                          altitude=rep(lat.list[[i]]$altitude, ((yend-ystart)+1)))
-                          
   #Loop that goes through every year for each point
   for(YR in min(df.tmp$year):max(df.tmp$year)){
+    setTxtProgressBar(pb, pb.ind); pb.ind=pb.ind+1
     df.yr <- df.tmp[df.tmp$year==YR,]
     w.p <- 0
     wo.p <- 0
     rows <- 1
-    
     #loop that determines the length of dry and wet periods as well as yearlong temp stats
     for(t in rows:nrow(df.yr)){
       if(df.yr[t, "prcp..mm.day."] != 0){
@@ -94,7 +98,7 @@ for(i in seq_along(lat.list)){
                                     dry.mean.min = mean(tmin..deg.c.),
                                     days.wo.precip = max(days.wo.precip), 
                                     days.precip = max(days.precip),
-                                    max.precip =max(prcp..mm.day.),
+                                    max.precip =max(max.precip),
                                     max.temp = max(tmax..deg.c.),
                                     min.temp = min(tmin..deg.c.),
                                     last.freeze = max(last.freeze),
@@ -103,23 +107,27 @@ for(i in seq_along(lat.list)){
                                     
     
     #merging them together for the final data frame
-    df.output$year <- df.dry$year
-    df.output$days.wo.precip <- df.dry$days.wo.precip
-    df.output$days.precip <- df.dry$days.precip
-    df.output$max.precip <- df.dry$max.precip
-    df.output$max.temp <- df.dry$max.temp
-    df.output$min.temp <- df.dry$min.temp
-    df.output$first.freeze <- df.dry$first.freeze
-    df.output$last.freeze <- df.dry$last.freeze
-    df.output$dry.max <- df.dry$dry.max
-    df.output$dry.min <- df.dry$dry.min
-    df.output$dry.mean.max <- df.dry$dry.mean.max
-    df.output$dry.mean.min <- df.dry$dry.mean.min
+    df.output[count, "latitude"] <- lat.list[[i]]$latitude
+    df.output[count, "longitude"] <- lat.list[[i]]$longitude
+    df.output[count, "altitude"] <- lat.list[[i]]$altitude
+    df.output[count, "year"] <- df.dry$year
+    df.output[count, "days.wo.precip"] <- df.dry$days.wo.precip
+    df.output[count, "days.precip"] <- df.dry$days.precip
+    df.output[count, "max.precip"] <- df.dry$max.precip
+    df.output[count, "max.temp"] <- df.dry$max.temp
+    df.output[count, "min.temp"] <- df.dry$min.temp
+    df.output[count, "first.freeze"] <- df.dry$first.freeze
+    df.output[count, "last.freeze"] <- df.dry$last.freeze
+    df.output[count, "dry.max"] <- df.dry$dry.max
+    df.output[count, "dry.min"] <- df.dry$dry.min
+    df.output[count, "dry.mean.max"] <- df.dry$dry.mean.max
+    df.output[count, "dry.mean.min"] <- df.dry$dry.mean.min
     
+    count <- count + 1
   }
 }
 
-path.out <- "D:/lfitzpatrick/Oak_Daymet"
+path.out <- "F:/lfitzpatrick/Oak_Daymet"
 filename <- paste(species, "_daymet_data.csv", sep="")
 
 write.csv(df.output, file.path(path.out, file = filename), row.names = F)
