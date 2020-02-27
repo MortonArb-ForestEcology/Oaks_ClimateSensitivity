@@ -4,7 +4,7 @@ library(dplyr)
 #setting file path
 path.points <- "G:/My Drive/Oaks_ClimateSensitivity/Occurrence/"
 setwd(path.points)
-species <- "Q_falcata"
+species <- "Q_stellata"
 ystart <- 1980
 
 #make sure the yend of the data matches what you enter. Sometimes daymet truncates and this varibale will become wrong later in the script
@@ -90,6 +90,7 @@ for(i in seq_along(lat.list)){
       if(df.sum[d, "days.wo.precip"] == df.sum[d, "max.wo.precip"]){
         v <- as.numeric(df.sum[d, "max.wo.precip"])
         df.sum[(((d-v)+1):d), "dry"] <- 1
+        break
       }
       drows <- drows+1
     }
