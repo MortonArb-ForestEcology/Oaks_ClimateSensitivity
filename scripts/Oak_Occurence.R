@@ -4,7 +4,7 @@ library(dplyr)
 #setting file path
 path.points <- "G:/My Drive/Oaks_ClimateSensitivity/Occurrence/"
 setwd(path.points)
-species <- "Q_stellata"
+species <- "Q_imbricaria"
 ystart <- 1980
 
 #make sure the yend of the data matches what you enter. Sometimes daymet truncates and this varibale will become wrong later in the script
@@ -16,7 +16,8 @@ occurencefile <- paste(species, "_occurence_points.csv", sep="")
 q.occur <- read.csv(paste(species, "_spatial_data.csv", sep=""))
 
 #Subsetting to only include lat and long (and for now the first rows to make testing easier)
-q.lat <- q.occur[,(c=8:9)]
+q.lat <- q.occur[,c("decimalLatitude","decimalLongitude")]
+q.lat <- na.omit(q.lat)
 
 #creating a proxy "site" column because the batch function needs it
 q.lat$site <- "Daymet"
@@ -133,7 +134,7 @@ for(i in seq_along(lat.list)){
   }
 }
 
-path.out <- "F:/lfitzpatrick/Oak_Daymet"
+path.out <- "D:/lfitzpatrick/Oak_Daymet"
 filename <- paste(species, "_daymet_data.csv", sep="")
 
 write.csv(df.output, file.path(path.out, file = filename), row.names = F)
